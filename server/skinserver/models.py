@@ -13,3 +13,24 @@ class User(models.Model):
     
     def __str__(self) -> str:
         return f"name {self.name}"
+    
+class Hospital(models.Model):
+    name = models.CharField(max_length=200)
+    address = models.CharField(max_length=500)
+    contact_number = models.CharField(max_length=10, validators=[length])
+    SPECIALTY_CHOICES = [
+        ('Cardiology', 'Cardiology'),
+        ('Neurology', 'Neurology'),
+        ('Orthopedics', 'Orthopedics'),
+        ('Oncology', 'Oncology'),
+        ('Gynecology', 'Gynecology'),
+        ('Nephrology', 'Nephrology'),
+        ('Urology', 'Urology'),
+        ('Liver Transplant', 'Liver Transplant'),
+        ('Gastroenterology', 'Gastroenterology'),
+        ('Pulmonology', 'Pulmonology'),
+    ]
+    specialties = models.CharField(max_length=50, choices=SPECIALTY_CHOICES)
+
+    def __str__(self):
+        return self.name
