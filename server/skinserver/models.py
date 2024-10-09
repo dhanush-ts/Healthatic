@@ -18,6 +18,7 @@ class Hospital(models.Model):
     name = models.CharField(max_length=200)
     address = models.CharField(max_length=500)
     contact_number = models.CharField(max_length=10, validators=[length])
+    image = models.URLField()
     SPECIALTY_CHOICES = [
         ('Cardiology', 'Cardiology'),
         ('Neurology', 'Neurology'),
