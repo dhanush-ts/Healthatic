@@ -30,7 +30,7 @@ class Login(APIView):
                     if i['password'] == request.data['password']:            
                         return Response(i)
                     return Response({"success": False, "message":"wrong password"})
-                return Response({"success": False, "message":"user not found"})
+            return Response({"success": False, "message":"user not found"})
         except User.DoesNotExist:
             return Response({'status':'not found'},status=status.HTTP_404_NOT_FOUND)
         
@@ -57,4 +57,3 @@ class HospitalDetailAV(APIView):
             return Response(serializer.data)
         except Hospital.DoesNotExist:
             return Response({'status':'not found'},status=status.HTTP_404_NOT_FOUND)
-    
