@@ -5,8 +5,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'
-        
+
 class HospitalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hospital
+        fields = ('id', 'name', 'image', 'specialties')
+        
+class HospitalDeailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hospital
         fields = '__all__'
