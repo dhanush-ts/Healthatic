@@ -62,7 +62,7 @@ class HospitalDetailAV(APIView):
         except Hospital.DoesNotExist:
             return Response({'status':'not found'},status=status.HTTP_404_NOT_FOUND)
         
-class_names = ['Eczema', 'Warts', 'Melanoma', 'Atopic', 'Basal', 'Melanocytic',
+class_names = ['Healthy', 'Warts', 'Melanoma', 'Atopic', 'Basal', 'Melanocytic',
                'Benign', 'Psoriasis', 'Seborrheic', 'Tinea', 'Acne', 'Vitiligo', 'Chickenpox']
 
 class PredictAV(APIView):
