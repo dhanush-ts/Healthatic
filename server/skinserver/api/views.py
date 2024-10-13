@@ -86,4 +86,23 @@ class PredictAV(APIView):
             image_file = request.FILES['image']
             top_4_diseases = predict_top_4_diseases(image_file)
             return Response({"top_4_predictions": top_4_diseases}, status=status.HTTP_200_OK)
+        if pk==2:
+            model = load_model('skinserver/api/eye.h5')
+            if 'image' not in request.FILES:
+                return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
+            def preprocess_image(img):
+                img = cv2.imdecode(np.frombuffer(img.read(), np.uint8), cv2.IMREAD_COLOR)  
+                img = cv2.resize(img, (224, 224))  
+                img = img.astype('float32') / 255.0  
+                img = np.expand_dims(img, axis=0)  
+                return img
+            def predict_top_4_diseases(img):
+                processed_img = preprocess_image(img)
+                predictions = model.predict(processed_img)
+                top_4_indices = np.argsort(predictions[0])[-4:][::-1]
+                top_4_diseases = [class_names[i] for i in top_4_indices]
+                return top_4_diseases
+            image_file = request.FILES['image']
+            top_4_diseases = predict_top_4_diseases(image_file)
+            return Response({"top_4_predictions": top_4_diseases}, status=status.HTTP_200_OK)
         return Response({"error": "Invalid pk."}, status=status.HTTP_400_BAD_REQUEST)
