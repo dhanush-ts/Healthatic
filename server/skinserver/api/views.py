@@ -62,31 +62,28 @@ class HospitalDetailAV(APIView):
         except Hospital.DoesNotExist:
             return Response({'status':'not found'},status=status.HTTP_404_NOT_FOUND)
         
+class_names = ['Eczema', 'Warts', 'Melanoma', 'Atopic', 'Basal', 'Melanocytic',
+               'Benign', 'Psoriasis', 'Seborrheic', 'Tinea', 'Acne', 'Vitiligo', 'Chickenpox']
+
 class PredictAV(APIView):
     def post(self, request, pk):
         if pk == 1:
-            print(os.listdir())
             model = load_model('skinserver/api/skin.h5')
-
             if 'image' not in request.FILES:
                 return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
-
             def preprocess_image(img):
                 img = cv2.imdecode(np.frombuffer(img.read(), np.uint8), cv2.IMREAD_COLOR)  
                 img = cv2.resize(img, (150, 150))  
                 img = img.astype('float32') / 255.0  
                 img = np.expand_dims(img, axis=0)  
                 return img
-
-            def predict_disease(img):
-                processed_img = preprocess_image(img)  
-                predictions = model.predict(processed_img)  
-                predicted_class = np.argmax(predictions, axis=1) 
-                return predicted_class
-
+            def predict_top_4_diseases(img):
+                processed_img = preprocess_image(img)
+                predictions = model.predict(processed_img)
+                top_4_indices = np.argsort(predictions[0])[-4:][::-1]
+                top_4_diseases = [class_names[i] for i in top_4_indices]
+                return top_4_diseases
             image_file = request.FILES['image']
-            prediction = predict_disease(image_file)  
-            class_names = ['Eczema', 'Warts', 'Melanoma', 'Atopic', 'Basal', 'Melanocytic','Benign', 'Psoriasis', 'Seborrheic', 'Tinea', 'Acne', 'Vitiligo','Chickenpox']
-
-            return Response({"predictions": class_names[int(prediction)]}, status=status.HTTP_200_OK)
+            top_4_diseases = predict_top_4_diseases(image_file)
+            return Response({"top_4_predictions": top_4_diseases}, status=status.HTTP_200_OK)
         return Response({"error": "Invalid pk."}, status=status.HTTP_400_BAD_REQUEST)
