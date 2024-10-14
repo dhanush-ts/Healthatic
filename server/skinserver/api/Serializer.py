@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from skinserver.models import User, Hospital
+from skinserver.models import User, Hospital, History
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,4 +14,9 @@ class HospitalSerializer(serializers.ModelSerializer):
 class HospitalDeailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hospital
+        fields = '__all__'
+        
+class DiseaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = History
         fields = '__all__'

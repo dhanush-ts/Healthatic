@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from skinserver.models import User, Hospital
-from skinserver.api.Serializer import UserSerializer, HospitalSerializer, HospitalDeailsSerializer
-from rest_framework import status
+from skinserver.models import User, Hospital, History
+from skinserver.api.Serializer import UserSerializer, HospitalSerializer, HospitalDeailsSerializer, DiseaseSerializer
+from rest_framework import status, generics
 from tensorflow.keras.models import load_model
 import cv2
 import numpy as np
-import os
+from django.core.files import File
 
 class UserListAV(APIView):
     def get(self,request):
@@ -62,14 +62,17 @@ class HospitalDetailAV(APIView):
         except Hospital.DoesNotExist:
             return Response({'status':'not found'},status=status.HTTP_404_NOT_FOUND)
         
-class_names = ['Healthy', 'Warts', 'Melanoma', 'Atopic', 'Basal', 'Melanocytic',
-               'Benign', 'Psoriasis', 'Seborrheic', 'Tinea', 'Acne', 'Vitiligo', 'Chickenpox']
-
 class PredictAV(APIView):
     def post(self, request, pk):
         if pk == 1:
             model = load_model('skinserver/api/skin.h5')
-            if 'image' not in request.FILES:
+            if 'image' in request.FILES:
+                image_file = request.FILES['image']
+                print("Uploaded File Name:", image_file.name)
+                print("Uploaded File Content Type:", image_file.content_type)
+                print("Uploaded File Size:", image_file.size)
+                print("Is File Empty:", image_file.size == 0)
+            else:
                 return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
             def preprocess_image(img):
                 img = cv2.imdecode(np.frombuffer(img.read(), np.uint8), cv2.IMREAD_COLOR)  
@@ -78,31 +81,79 @@ class PredictAV(APIView):
                 img = np.expand_dims(img, axis=0)  
                 return img
             def predict_top_4_diseases(img):
+                class_names1 = ['Healthy', 'Warts', 'Melanoma', 'Atopic', 'Basal', 'Melanocytic','Benign', 'Psoriasis', 'Seborrheic', 'Tinea', 'Acne', 'Vitiligo', 'Chickenpox']
                 processed_img = preprocess_image(img)
                 predictions = model.predict(processed_img)
-                top_4_indices = np.argsort(predictions[0])[-4:][::-1]
-                top_4_diseases = [class_names[i] for i in top_4_indices]
+                top_4_indices = np.argsort(predictions[0])[-3:][::-1]
+                top_4_diseases = [class_names1[i] for i in top_4_indices]
                 return top_4_diseases
             image_file = request.FILES['image']
             top_4_diseases = predict_top_4_diseases(image_file)
-            return Response({"top_4_predictions": top_4_diseases}, status=status.HTTP_200_OK)
-        if pk==2:
-            model = load_model('skinserver/api/eye.h5')
-            if 'image' not in request.FILES:
-                return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
-            def preprocess_image(img):
-                img = cv2.imdecode(np.frombuffer(img.read(), np.uint8), cv2.IMREAD_COLOR)  
-                img = cv2.resize(img, (224, 224))  
-                img = img.astype('float32') / 255.0  
-                img = np.expand_dims(img, axis=0)  
-                return img
-            def predict_top_4_diseases(img):
-                processed_img = preprocess_image(img)
-                predictions = model.predict(processed_img)
-                top_4_indices = np.argsort(predictions[0])[-4:][::-1]
-                top_4_diseases = [class_names[i] for i in top_4_indices]
-                return top_4_diseases
-            image_file = request.FILES['image']
-            top_4_diseases = predict_top_4_diseases(image_file)
-            return Response({"top_4_predictions": top_4_diseases}, status=status.HTTP_200_OK)
-        return Response({"error": "Invalid pk."}, status=status.HTTP_400_BAD_REQUEST)
+            data = {
+                "disease": str(top_4_diseases),
+                "user": int(request.POST.get('user')),
+            }
+            serializer = DiseaseSerializer(data = data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"top_3_predictions": top_4_diseases}, status=status.HTTP_200_OK)
+            else:
+                print(serializer.errors)
+       
+        if pk == 2:
+                model = load_model('skinserver/api/eye.h5')
+                if 'image' in request.FILES:
+                    image_file = request.FILES['image']
+                    print("Uploaded File Name:", image_file.name)
+                    print("Uploaded File Content Type:", image_file.content_type)
+                    print("Uploaded File Size:", image_file.size)
+                    print("Is File Empty:", image_file.size == 0)
+                else:
+                    return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
+                def preprocess_image(img):
+                    img = cv2.imdecode(np.frombuffer(img.read(), np.uint8), cv2.IMREAD_COLOR)  
+                    img = cv2.resize(img, (224, 224))  
+                    img = img.astype('float32') / 255.0  
+                    img = np.expand_dims(img, axis=0)  
+                    return img
+                def predict_top_4_diseases(img):
+                    class_names1 = ['Cataract', 'Diabetic Retinopathy', 'Glaucoma', 'Normal']
+                    processed_img = preprocess_image(img)
+                    predictions = model.predict(processed_img)
+                    top_4_indices = np.argsort(predictions[0])[-3:][::-1]
+                    top_4_diseases = [class_names1[i] for i in top_4_indices]
+                    return top_4_diseases
+                image_file = request.FILES['image']
+                top_4_diseases = predict_top_4_diseases(image_file)
+                data = {
+                    "disease": str(top_4_diseases),
+                    "user": int(request.POST.get('user')),
+                }
+                serializer = DiseaseSerializer(data = data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response({"top_3_predictions": top_4_diseases}, status=status.HTTP_200_OK)
+                else:
+                    print(serializer.errors)
+
+    
+class HospitalsFilter(generics.ListAPIView):
+    serializer_class = HospitalSerializer
+    
+    def get_queryset(self):
+        disease = self.request.data.get('disease')
+        if disease:
+            return Hospital.objects.filter(specialties=disease)
+        else:
+            return Hospital.objects.none()
+
+import json
+class HistoryAV(generics.ListAPIView):
+    serializer_class = DiseaseSerializer
+    
+    def get_queryset(self):
+        body_unicode = self.request.body.decode('utf-8')
+        body_data = json.loads(body_unicode)
+        
+        user = body_data.get('user')
+        return History.objects.filter(user=user)
