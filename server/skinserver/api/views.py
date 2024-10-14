@@ -136,7 +136,7 @@ class PredictAV(APIView):
                 else:
                     print(serializer.errors)
 
-    
+
 class HospitalsFilter(generics.ListAPIView):
     serializer_class = HospitalSerializer
     
